@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Amazon Products Line Chart</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body class="bg-secondary bg-opacity-10">
+
+  <nav class="navbar navbar-expand-lg" style="background-color: #FF9900;">
+    <div class="container">
+      <a class="navbar-brand fw-bold text-dark" href="#">
+        <i class="bi bi-bar-chart-fill me-2"></i>
+        Amazon Product Analysis
+      </a>
+    </div>
+  </nav>
+
+  <div class="container my-4 text-center">
+    <h1 class="fw-bold text-dark mb-2">Top Manufacturers Selling on Amazon</h1>
+    <p class="text-dark fw-semibold mb-0">
+      This chart shows the manufacturers with the highest number of products in the Amazon sample dataset.
+    </p>
+  </div>
+
+  <main class="container mb-5">
+    <div class="row justify-content-center">
+      <div class="col-lg-7 col-md-9 col-12">
+        <div class="card shadow-sm border-0" style="background-color: #ffffff;">
+          <div class="card-body">
+
+            <h4 class="text-center fw-bold text-dark mb-3">Sales Charts</h4>
+
+            <div class="ratio ratio-16x9 mb-3">
+              <canvas id="myChart"></canvas>
+            </div>
+
+            <div class="d-flex justify-content-center gap-2 flex-wrap mb-4">
+              <button id="addPoint" class="btn btn-warning btn-sm fw-bold text-dark">Add Product</button>
+              <button id="removePoint" class="btn btn-dark btn-sm fw-bold">Remove Product</button>
+              <button id="randomize" class="btn btn-secondary btn-sm fw-bold text-dark">Randomize Values</button>
+            </div>
+
+            <div class="card mt-4 bg-light border-0">
+              <div class="card-body">
+                <h5 class="fw-bold mb-3">Dataset Overview</h5>
+                <p class="mb-0">
+                  The dataset used for this project is the Amazon co-ecommerce sample dataset sourced from Kaggle. 
+                  It contains 10,000 product listings related primarily to fashion and hobby items sold on Amazon. 
+                  Each row represents one individual product, and the dataset includes 18 columns containing product information such as product name, manufacturer, price, number of reviews, average rating, stock availability, and customer interaction data. 
+                  The dataset contains both numerical and categorical variables. However, several numerical fields were originally stored as text, such as price values including currency symbols and ratings written in sentence format. 
+                  Therefore, data cleaning was required before statistical analysis could be performed accurately. 
+                  The large sample size makes this dataset suitable for descriptive statistical analysis and further machine learning applications.
+                </p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+  <script>
+    let myChart;
+    let allManufacturers = [];
+
+    function loadChartFromCSV() {
+      Papa.parse("amazon_co-ecommerce_sample.csv", {
+        download: true,
+        header: true,
+        skipEmptyLines: true,
+        complete: function(results) {
+          const data = results.data;
+          const manufacturerCount = {};
+
+          data.forEach(row => {
+            const manufacturer = row.manufacturer?.trim();
+            if (manufacturer) {
+              manufacturerCount[manufacturer] = (manufacturerCount[manufacturer] || 0) + 1;
+              allManufacturers.push(manufacturer);
+            }
+          });
+
+          const sorted = Object.entries(manufacturerCount)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 5);
+
+          const topLabels = sorted.map(item => item[0]);
+          const values = sorted.map(item => item[1]);
+
+          const ctx = document.getElementById("myChart").getContext("2d");
+          myChart = new Chart(ctx, {
+            type: "line",
+            data: {
+              labels: topLabels.slice(),
+              datasets: [{
+                label: "Number of Products",
+                data: values.slice(),
+                backgroundColor: "rgba(255, 153, 0, 0.2)",
+                borderColor: "#FF9900",
+                borderWidth: 2,
+                tension: 0.4,
+                fill: true,
+                pointBackgroundColor: "#FF9900",
+                pointRadius: 5
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: { legend: { display: false } },
+              scales: { 
+                y: { beginAtZero: true, ticks: { stepSize: 1, color: "#333333" } },
+                x: { ticks: { color: "#333333" } }
+              }
+            }
+          });
+        },
+        error: function(err) {
+          console.error("CSV parsing error:", err);
+        }
+      });
+    }
+
+    loadChartFromCSV();
+
+    document.getElementById("addPoint").addEventListener("click", () => {
+      if(allManufacturers.length === 0) return;
+      const randomIndex = Math.floor(Math.random() * allManufacturers.length);
+      const newLabel = allManufacturers[randomIndex];
+      const newValue = Math.floor(Math.random() * 10) + 1;
+      myChart.data.labels.push(newLabel);
+      myChart.data.datasets[0].data.push(newValue);
+      myChart.update();
+    });
+
+    document.getElementById("removePoint").addEventListener("click", () => {
+      if(myChart.data.labels.length > 0){
+        myChart.data.labels.pop();
+        myChart.data.datasets[0].data.pop();
+        myChart.update();
+      }
+    });
+
+    document.getElementById("randomize").addEventListener("click", () => {
+      myChart.data.datasets[0].data = myChart.data.datasets[0].data.map(() => Math.floor(Math.random() * 10) + 1);
+      myChart.update();
+    });
+  </script>
+
+</body>
+</html>
